@@ -2,6 +2,7 @@
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using System;
+using System.Numerics;
 
 namespace LearnOpenGL
 {
@@ -16,6 +17,8 @@ namespace LearnOpenGL
 
         private static Texture Texture;
         private static Shader Shader;
+
+        private static Transform[] Transforms = new Transform[4];
 
         private static readonly float[] Vertices =
         {
@@ -64,7 +67,11 @@ namespace LearnOpenGL
             Texture.Bind(TextureUnit.Texture0);
             Shader.SetUniform("uTexture0", 0);
 
-            Gl.DrawElements(PrimitiveType.Triangles, (uint)Indices.Length, DrawElementsType.UnsignedInt, null);
+            for (int i = 0; i < Transforms.Length; i++)
+            {
+                Shader.SetUniform("uModel", Transforms[i].ViewMatrix);
+                Gl.DrawElements(PrimitiveType.Triangles, (uint)Indices.Length, DrawElementsType.UnsignedInt, null);
+            }
         }
 
         private static unsafe void OnLoad()
@@ -87,6 +94,20 @@ namespace LearnOpenGL
             Shader = new Shader(Gl, "shader.vert", "shader.frag");
 
             Texture = new Texture(Gl, "silk.png");
+
+            Transforms[0] = new Transform();
+            Transforms[0].Position = new Vector3(0.5f, 0.5f, 0f);
+
+            Transforms[1] = new Transform();
+            Transforms[1].Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 1f);
+
+            Transforms[2] = new Transform();
+            Transforms[2].Scale = 0.5f;
+
+            Transforms[3] = new Transform();
+            Transforms[3].Position = new Vector3(-0.5f, 0.5f, 0f);
+            Transforms[3].Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 1f);
+            Transforms[3].Scale = 0.5f;
         }
 
         private static void KeyDown(IKeyboard arg1, Key arg2, int arg3)

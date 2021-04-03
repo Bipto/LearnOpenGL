@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -52,6 +53,18 @@ namespace LearnOpenGL
             }
             Use();
             _gl.Uniform1(location, value);
+        }
+
+        public unsafe void SetUniform(string name, Matrix4x4 value)
+        {
+            int location = _gl.GetUniformLocation(_handle, name);
+            if (location == -1)
+            {
+                throw new Exception($"{name} uniform not found on shader.");
+            }
+
+            Use();
+            _gl.UniformMatrix4(location, 1, false, (float*)&value);
         }
 
         public void SetUniform(string name, float value)
