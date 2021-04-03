@@ -13,14 +13,16 @@ namespace LearnOpenGL
         private static BufferObject<float> Vbo;
         private static BufferObject<uint> Ebo;
         private static VertexArrayObject<float, uint> Vao;
+
+        private static Texture Texture;
         private static Shader Shader;
 
         private static readonly float[] Vertices =
         {
-            0.5f, 0.5f, 0.0f, 1, 0, 0, 1,
-            0.5f, -0.5f, 0.0f, 0, 0, 0, 1
-            -0.5f, -0.5f, 0.0f, 0, 0, 1, 1,
-            -0.5f, 0.5f, 0.5f, 0, 0, 0, 1,
+            0.5f,  0.5f, 0.0f, 1f, 1f,
+            0.5f, -0.5f, 0.0f, 1f, 0f,
+            -0.5f, -0.5f, 0.0f, 0f, 0f,
+            -0.5f,  0.5f, 0.5f, 0f, 1f
         };
 
         private static readonly uint[] Indices =
@@ -58,7 +60,9 @@ namespace LearnOpenGL
 
             Vao.Bind();
             Shader.Use();
-            Shader.SetUniform("uBlue", (float)Math.Sin(DateTime.Now.Millisecond / 1000f * Math.PI));
+
+            Texture.Bind(TextureUnit.Texture0);
+            Shader.SetUniform("uTexture0", 0);
 
             Gl.DrawElements(PrimitiveType.Triangles, (uint)Indices.Length, DrawElementsType.UnsignedInt, null);
         }
@@ -77,10 +81,12 @@ namespace LearnOpenGL
             Vbo = new BufferObject<float>(Gl, Vertices, BufferTargetARB.ArrayBuffer);
             Vao = new VertexArrayObject<float, uint>(Gl, Vbo, Ebo);
 
-            Vao.VertexAttributePointer(0, 3, VertexAttribPointerType.Float, 7, 0);
-            Vao.VertexAttributePointer(1, 4, VertexAttribPointerType.Float, 7, 3);
+            Vao.VertexAttributePointer(0, 3, VertexAttribPointerType.Float, 5, 0);
+            Vao.VertexAttributePointer(1, 2, VertexAttribPointerType.Float, 5, 3);
 
             Shader = new Shader(Gl, "shader.vert", "shader.frag");
+
+            Texture = new Texture(Gl, "silk.png");
         }
 
         private static void KeyDown(IKeyboard arg1, Key arg2, int arg3)
