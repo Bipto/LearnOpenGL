@@ -11,6 +11,9 @@ namespace LearnOpenGL
         private static IWindow window;
         private static GL Gl;
 
+        private const int Width = 800;
+        private const int Height = 700;
+
         private static BufferObject<float> Vbo;
         private static BufferObject<uint> Ebo;
         private static VertexArrayObject<float, uint> Vao;
@@ -18,14 +21,56 @@ namespace LearnOpenGL
         private static Texture Texture;
         private static Shader Shader;
 
-        private static Transform[] Transforms = new Transform[4];
+        private static Vector3 CameraPosition = new Vector3(0.0f, 0.0f, 3.0f);
+        private static Vector3 CameraTarget = Vector3.Zero;
+        private static Vector3 CameraDirection = Vector3.Normalize(CameraPosition - CameraTarget);
+        private static Vector3 CameraRight = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, CameraDirection));
+        private static Vector3 CameraUp = Vector3.Cross(CameraDirection, CameraRight);
 
         private static readonly float[] Vertices =
         {
-            0.5f,  0.5f, 0.0f, 1f, 1f,
-            0.5f, -0.5f, 0.0f, 1f, 0f,
-            -0.5f, -0.5f, 0.0f, 0f, 0f,
-            -0.5f,  0.5f, 0.5f, 0f, 1f
+            //X    Y      Z     U   V
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+             0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+             0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+             0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+             0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+             0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
         };
 
         private static readonly uint[] Indices =
@@ -59,7 +104,7 @@ namespace LearnOpenGL
 
         private static unsafe void OnRender(double obj)
         {
-            Gl.Clear((uint)ClearBufferMask.ColorBufferBit);
+            Gl.Clear((uint)(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
 
             Vao.Bind();
             Shader.Use();
@@ -67,11 +112,17 @@ namespace LearnOpenGL
             Texture.Bind(TextureUnit.Texture0);
             Shader.SetUniform("uTexture0", 0);
 
-            for (int i = 0; i < Transforms.Length; i++)
-            {
-                Shader.SetUniform("uModel", Transforms[i].ViewMatrix);
-                Gl.DrawElements(PrimitiveType.Triangles, (uint)Indices.Length, DrawElementsType.UnsignedInt, null);
-            }
+            var difference = (float)(window.Time * 100);
+
+            var model = Matrix4x4.CreateRotationY(MathHelper.DegreesToRadians(difference)) * Matrix4x4.CreateRotationX(MathHelper.DegreesToRadians(difference));
+            var view = Matrix4x4.CreateLookAt(CameraPosition, CameraTarget, CameraUp);
+            var projection = Matrix4x4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45.0f), Width / Height, 0.1f, 100.0f);
+
+            Shader.SetUniform("uModel", model);
+            Shader.SetUniform("uView", view);
+            Shader.SetUniform("uProjection", projection);
+
+            Gl.DrawArrays(PrimitiveType.Triangles, 0, 36);
         }
 
         private static unsafe void OnLoad()
@@ -93,21 +144,7 @@ namespace LearnOpenGL
 
             Shader = new Shader(Gl, "shader.vert", "shader.frag");
 
-            Texture = new Texture(Gl, "silk.png");
-
-            Transforms[0] = new Transform();
-            Transforms[0].Position = new Vector3(0.5f, 0.5f, 0f);
-
-            Transforms[1] = new Transform();
-            Transforms[1].Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 1f);
-
-            Transforms[2] = new Transform();
-            Transforms[2].Scale = 0.5f;
-
-            Transforms[3] = new Transform();
-            Transforms[3].Position = new Vector3(-0.5f, 0.5f, 0f);
-            Transforms[3].Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 1f);
-            Transforms[3].Scale = 0.5f;
+            Texture = new Texture(Gl, "silk.png"); 
         }
 
         private static void KeyDown(IKeyboard arg1, Key arg2, int arg3)
