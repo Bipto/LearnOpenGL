@@ -78,6 +78,17 @@ namespace LearnOpenGL
             _gl.Uniform1(location, value);
         }
 
+        public void SetUniform(string name, Vector3 value)
+        {
+            int location = _gl.GetUniformLocation(_handle, name);
+            if (location == -1)
+            {
+                throw new Exception($"{name} uniform not found on shader");
+            }
+            Use();
+            _gl.Uniform3(location, value.X, value.Y, value.Z);
+        }
+
         public void Dispose()
         {
             _gl.DeleteProgram(_handle);

@@ -1,4 +1,5 @@
 ﻿using Silk.NET.Input;
+using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using System;
@@ -18,65 +19,59 @@ namespace LearnOpenGL
 
         private static BufferObject<float> Vbo;
         private static BufferObject<uint> Ebo;
-        private static VertexArrayObject<float, uint> Vao;
+        private static VertexArrayObject<float, uint> VaoCube;
+        private static Shader LightingShader;
+        private static Shader LampShader;
 
-        private static Texture Texture;
-        private static Shader Shader;
+        private static Camera Camera;
 
-        private static Vector3 CameraPosition = new Vector3(0.0f, 0.0f, 3.0f);
-        private static Vector3 CameraFront = new Vector3(0.0f, 0.0f, -1.0f);
-        private static Vector3 CameraUp = Vector3.UnitY;
-        private static Vector3 CameraDirection = Vector3.Zero;
-        private static float CameraYaw = -90f;
-        private static float CameraPitch = 0f;
-        private static float CameraZoom = 45f;
-
+        //Used to track change in mouse movement to allow for moving of the Camera
         private static Vector2 LastMousePosition;
 
         private static readonly float[] Vertices =
         {
-            //X    Y      Z     U   V
-            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-             0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+            //X    Y      Z
+            -0.5f, -0.5f, -0.5f,
+             0.5f, -0.5f, -0.5f,
+             0.5f,  0.5f, -0.5f,
+             0.5f,  0.5f, -0.5f,
+            -0.5f,  0.5f, -0.5f,
+            -0.5f, -0.5f, -0.5f,
 
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-             0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-             0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f,
+             0.5f, -0.5f,  0.5f,
+             0.5f,  0.5f,  0.5f,
+             0.5f,  0.5f,  0.5f,
+            -0.5f,  0.5f,  0.5f,
+            -0.5f, -0.5f,  0.5f,
 
-            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,
+            -0.5f,  0.5f, -0.5f,
+            -0.5f, -0.5f, -0.5f,
+            -0.5f, -0.5f, -0.5f,
+            -0.5f, -0.5f,  0.5f,
+            -0.5f,  0.5f,  0.5f,
 
-             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-             0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-             0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-             0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+             0.5f,  0.5f,  0.5f,
+             0.5f,  0.5f, -0.5f,
+             0.5f, -0.5f, -0.5f,
+             0.5f, -0.5f, -0.5f,
+             0.5f, -0.5f,  0.5f,
+             0.5f,  0.5f,  0.5f,
 
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-             0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,
+             0.5f, -0.5f, -0.5f,
+             0.5f, -0.5f,  0.5f,
+             0.5f, -0.5f,  0.5f,
+            -0.5f, -0.5f,  0.5f,
+            -0.5f, -0.5f, -0.5f,
 
-            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+            -0.5f,  0.5f, -0.5f,
+             0.5f,  0.5f, -0.5f,
+             0.5f,  0.5f,  0.5f,
+             0.5f,  0.5f,  0.5f,
+            -0.5f,  0.5f,  0.5f,
+            -0.5f,  0.5f, -0.5f
         };
 
         private static readonly uint[] Indices =
@@ -85,81 +80,22 @@ namespace LearnOpenGL
             1, 2, 3
         };
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             var options = WindowOptions.Default;
-            options.Size = new Silk.NET.Maths.Vector2D<int>(800, 600);
+            options.Size = new Vector2D<int>(800, 600);
             options.Title = "LearnOpenGL with Silk.NET";
-            options.VSync = false;
-
             window = Window.Create(options);
 
             window.Load += OnLoad;
+            window.Update += OnUpdate;
             window.Render += OnRender;
             window.Closing += OnClose;
-            window.Update += OnUpdate;
 
             window.Run();
         }
 
-        private static void OnUpdate(double deltaTime)
-        {
-            var moveSpeed = 2.5f * (float)deltaTime;
-
-            if (primaryKeyboard.IsKeyPressed(Key.W))
-            {
-                CameraPosition += moveSpeed * CameraFront;
-            }
-
-            if (primaryKeyboard.IsKeyPressed(Key.S))
-            {
-                CameraPosition -= moveSpeed * CameraFront;
-            }
-
-            if (primaryKeyboard.IsKeyPressed(Key.A))
-            {
-                CameraPosition -= Vector3.Normalize(Vector3.Cross(CameraFront, CameraUp)) * moveSpeed;
-            }
-
-            if (primaryKeyboard.IsKeyPressed(Key.D))
-            {
-                CameraPosition += Vector3.Normalize(Vector3.Cross(CameraFront, CameraUp)) * moveSpeed;
-            }
-        }
-
-        private static void OnClose()
-        {
-            Vbo.Dispose();
-            Ebo.Dispose();
-            Vao.Dispose();
-            Shader.Dispose();
-        }
-
-        private static unsafe void OnRender(double obj)
-        {
-            Gl.Clear((uint)(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
-
-            Vao.Bind();
-            Shader.Use();
-
-            Texture.Bind(TextureUnit.Texture0);
-            Shader.SetUniform("uTexture0", 0);
-
-            var difference = (float)(window.Time * 100);
-
-            var model = Matrix4x4.CreateRotationY(MathHelper.DegreesToRadians(difference)) * Matrix4x4.CreateRotationX(MathHelper.DegreesToRadians(difference));
-            var view = Matrix4x4.CreateLookAt(CameraPosition, CameraPosition + CameraFront, CameraUp);
-            var projection = Matrix4x4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(CameraZoom), Width / Height, 0.1f, 100.0f);
-
-            Shader.SetUniform("uModel", model);
-            Shader.SetUniform("uView", view);
-            Shader.SetUniform("uProjection", projection);
-
-            Gl.DrawArrays(PrimitiveType.Triangles, 0, 36);
-
-        }
-
-        private static unsafe void OnLoad()
+        private static void OnLoad()
         {
             IInputContext input = window.CreateInput();
             primaryKeyboard = input.Keyboards.FirstOrDefault();
@@ -167,7 +103,6 @@ namespace LearnOpenGL
             {
                 primaryKeyboard.KeyDown += KeyDown;
             }
-
             for (int i = 0; i < input.Mice.Count; i++)
             {
                 input.Mice[i].Cursor.CursorMode = CursorMode.Raw;
@@ -179,22 +114,78 @@ namespace LearnOpenGL
 
             Ebo = new BufferObject<uint>(Gl, Indices, BufferTargetARB.ElementArrayBuffer);
             Vbo = new BufferObject<float>(Gl, Vertices, BufferTargetARB.ArrayBuffer);
-            Vao = new VertexArrayObject<float, uint>(Gl, Vbo, Ebo);
+            VaoCube = new VertexArrayObject<float, uint>(Gl, Vbo, Ebo);
 
-            Vao.VertexAttributePointer(0, 3, VertexAttribPointerType.Float, 5, 0);
-            Vao.VertexAttributePointer(1, 2, VertexAttribPointerType.Float, 5, 3);
+            VaoCube.VertexAttributePointer(0, 3, VertexAttribPointerType.Float, 3, 0);
 
-            Shader = new Shader(Gl, "shader.vert", "shader.frag");
+            //The lighting shader will give our main cube its colour multiplied by the lights intensity
+            LightingShader = new Shader(Gl, "shader.vert", "lighting.frag");
+            //The Lamp shader uses a fragment shader that just colours it solid white so that we know it is the light source
+            LampShader = new Shader(Gl, "shader.vert", "shader.frag");
 
-            Texture = new Texture(Gl, "silk.png"); 
+            //Start a camera at position 3 on the Z axis, looking at position -1 on the Z axis
+            Camera = new Camera(Vector3.UnitZ * 6, Vector3.UnitZ * -1, Vector3.UnitY, Width / Height);
         }
 
-        private static void OnMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
+        private static unsafe void OnUpdate(double deltaTime)
         {
-            CameraZoom = Math.Clamp(CameraZoom - scrollWheel.Y, 1.0f, 45f);
+            var moveSpeed = 2.5f * (float)deltaTime;
+
+            if (primaryKeyboard.IsKeyPressed(Key.W))
+            {
+                //Move forwards
+                Camera.Position += moveSpeed * Camera.Front;
+            }
+            if (primaryKeyboard.IsKeyPressed(Key.S))
+            {
+                //Move backwards
+                Camera.Position -= moveSpeed * Camera.Front;
+            }
+            if (primaryKeyboard.IsKeyPressed(Key.A))
+            {
+                //Move left
+                Camera.Position -= Vector3.Normalize(Vector3.Cross(Camera.Front, Camera.Up)) * moveSpeed;
+            }
+            if (primaryKeyboard.IsKeyPressed(Key.D))
+            {
+                //Move right
+                Camera.Position += Vector3.Normalize(Vector3.Cross(Camera.Front, Camera.Up)) * moveSpeed;
+            }
         }
 
-        private static void OnMouseMove(IMouse mouse, Vector2 position)
+        private static unsafe void OnRender(double deltaTime)
+        {
+            Gl.Enable(EnableCap.DepthTest);
+            Gl.Clear((uint)(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
+
+            VaoCube.Bind();
+            LightingShader.Use();
+
+            //Slightly rotate the cube to give it an angled face to look at
+            LightingShader.SetUniform("uModel", Matrix4x4.CreateRotationY(MathHelper.DegreesToRadians(25f)));
+            LightingShader.SetUniform("uView", Camera.GetViewMatrix());
+            LightingShader.SetUniform("uProjection", Camera.GetProjectionMatrix());
+            LightingShader.SetUniform("objectColor", new Vector3(1.0f, 0.5f, 0.31f));
+            LightingShader.SetUniform("lightColor", Vector3.One);
+
+            //We're drawing with just vertices and no indicies, and it takes 36 verticies to have a six-sided textured cube
+            Gl.DrawArrays(PrimitiveType.Triangles, 0, 36);
+
+            LampShader.Use();
+
+            //The Lamp cube is going to be a scaled down version of the normal cubes verticies moved to a different screen location
+            var lampMatrix = Matrix4x4.Identity;
+            lampMatrix *= Matrix4x4.CreateScale(0.2f);
+            lampMatrix *= Matrix4x4.CreateTranslation(new Vector3(1.2f, 1.0f, 2.0f));
+
+            LampShader.SetUniform("uModel", lampMatrix);
+            LampShader.SetUniform("uView", Camera.GetViewMatrix());
+            LampShader.SetUniform("uProjection", Camera.GetProjectionMatrix());
+
+            Gl.DrawArrays(PrimitiveType.Triangles, 0, 36);
+        }
+
+        private static unsafe void OnMouseMove(IMouse mouse, Vector2 position)
         {
             var lookSensitivity = 0.1f;
             if (LastMousePosition == default) { LastMousePosition = position; }
@@ -204,21 +195,26 @@ namespace LearnOpenGL
                 var yOffset = (position.Y - LastMousePosition.Y) * lookSensitivity;
                 LastMousePosition = position;
 
-                CameraYaw += xOffset;
-                CameraPitch -= yOffset;
-
-                CameraPitch = Math.Clamp(CameraPitch, -89.0f, 89.0f);
-
-                CameraDirection.X = MathF.Cos(MathHelper.DegreesToRadians(CameraYaw)) * MathF.Cos(MathHelper.DegreesToRadians(CameraPitch));
-                CameraDirection.Y = MathF.Sin(MathHelper.DegreesToRadians(CameraPitch));
-                CameraDirection.Z = MathF.Sin(MathHelper.DegreesToRadians(CameraYaw)) * MathF.Cos(MathHelper.DegreesToRadians(CameraPitch));
-                CameraFront = Vector3.Normalize(CameraDirection);
+                Camera.ModifyDirection(xOffset, yOffset);
             }
         }
 
-        private static void KeyDown(IKeyboard arg1, Key arg2, int arg3)
+        private static unsafe void OnMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
         {
-            if (arg2 == Key.Escape)
+            Camera.ModifyZoom(scrollWheel.Y);
+        }
+
+        private static void OnClose()
+        {
+            Vbo.Dispose();
+            Ebo.Dispose();
+            VaoCube.Dispose();
+            LightingShader.Dispose();
+        }
+
+        private static void KeyDown(IKeyboard keyboard, Key key, int arg3)
+        {
+            if (key == Key.Escape)
             {
                 window.Close();
             }
