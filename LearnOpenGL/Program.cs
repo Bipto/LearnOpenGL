@@ -2,6 +2,7 @@
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
+using System;
 using System.Linq;
 using System.Numerics;
 
@@ -9,8 +10,6 @@ namespace LearnOpenGL
 {
     class Program
     {
-        private static string title = "LearnOpenGL with Silk.NET. FPS:";
-
         private static IWindow window;
         private static GL Gl;
         private static IKeyboard primaryKeyboard;
@@ -29,6 +28,8 @@ namespace LearnOpenGL
 
         //Used to track change in mouse movement to allow for moving of the Camera
         private static Vector2 LastMousePosition;
+
+        private static DateTime StartTime;
 
         private static readonly float[] Vertices =
         {
@@ -86,6 +87,8 @@ namespace LearnOpenGL
         {
             var options = WindowOptions.Default;
             options.Size = new Vector2D<int>(800, 600);
+            options.Title = "Learn OpenGL with Silk.NET";
+            options.VSync = false;
             window = Window.Create(options);
 
             window.Load += OnLoad;
@@ -98,6 +101,7 @@ namespace LearnOpenGL
 
         private static void OnLoad()
         {
+            StartTime = DateTime.UtcNow;
             IInputContext input = window.CreateInput();
             primaryKeyboard = input.Keyboards.FirstOrDefault();
             if (primaryKeyboard != null)
@@ -128,8 +132,6 @@ namespace LearnOpenGL
 
         private static unsafe void OnUpdate(double deltaTime)
         {
-            window.Title = title + 1 / deltaTime;
-
             var moveSpeed = 2.5f * (float)deltaTime;
 
             if (primaryKeyboard.IsKeyPressed(Key.W))
@@ -162,13 +164,28 @@ namespace LearnOpenGL
             VaoCube.Bind();
             LightingShader.Use();
 
-            LightingShader.SetUniform("uModel", Matrix4x4.CreateRotationY(MathHelper.DegreesToRadians(25f)));
+            LightingShader.SetUniform("uModel", Matrix4x4.CreateRotationY(MathHelper.DegreesToRadians(25)));
             LightingShader.SetUniform("uView", Camera.GetViewMatrix());
             LightingShader.SetUniform("uProjection", Camera.GetProjectionMatrix());
-            LightingShader.SetUniform("objectColor", new Vector3(1.0f, 0.5f, 0.31f));
-            LightingShader.SetUniform("lightColor", Vector3.One);
-            LightingShader.SetUniform("lightPos", LampPosition);
             LightingShader.SetUniform("viewPos", Camera.Position);
+            LightingShader.SetUniform("material.ambient", new Vector3(1.0f, 0.5f, 0.31f));
+            LightingShader.SetUniform("material.diffuse", new Vector3(1.0f, 0.5f, 0.31f));
+            LightingShader.SetUniform("material.specular", new Vector3(0.5f, 0.5f, 0.5f));
+            LightingShader.SetUniform("material.shininess", 32.0f);
+
+            var difference = (float)(DateTime.UtcNow - StartTime).TotalSeconds;
+            var lightColor = Vector3.Zero;
+            lightColor.X = MathF.Sin(difference * 2.0f);
+            lightColor.Y = MathF.Sin(difference * 0.7f);
+            lightColor.Z = MathF.Sin(difference * 1.3f);
+
+            var diffuseColor = lightColor * new Vector3(0.5f);
+            var ambientColor = diffuseColor * new Vector3(0.2f);
+
+            LightingShader.SetUniform("light.ambient", ambientColor);
+            LightingShader.SetUniform("light.diffuse", diffuseColor);
+            LightingShader.SetUniform("light.specular", new Vector3(1.0f, 1.0f, 1.0f));
+            LightingShader.SetUniform("light.position", LampPosition);
 
             Gl.DrawArrays(PrimitiveType.Triangles, 0, 36);
 
